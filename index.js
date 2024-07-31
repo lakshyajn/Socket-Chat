@@ -1,36 +1,24 @@
-import express from 'express';
-import { createServer } from 'node:http';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-import { Server } from 'socket.io';
-
+const express = require('express');
 const app = express();
-const server = createServer(app);
-const io = new Server(server);
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+  res.sendFile(__dirname + '/index.html');
 });
 
+const messages = [];
+
 io.on('connection', (socket) => {
+  socket.emit('initial messages', messages);
+
   socket.on('chat message', (msg) => {
+    messages.push(msg);
     io.emit('chat message', msg);
   });
 });
 
-// this will emit the event to all connected sockets
-io.emit('hello', 'world'); 
-io.on('connection', (socket) => {
-  socket.broadcast.emit('hi');
-});
-io.on('connection', (socket) => {
-  socket.on('chat message', (msg) => {
-    io.emit('chat message', msg);
-  });
-});
-
-server.listen(3000, () => {
-  console.log('server running at http://localhost:3000');
+http.listen(port, () => {
+  console.log(`Socket.IO server running at http://localhost:${port}/`);
 });
